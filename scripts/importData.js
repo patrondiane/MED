@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const { Medicament, Presentation, AvisSMR, AvisASMR } = require('../models/Medicament');
+const { decoderFichierBdpm } = require('../utils/encodage');
 
 const connectDB = async () => {
     await mongoose.connect(process.env.MONGO_URI);
@@ -15,24 +16,22 @@ const connectDB = async () => {
 
 /**
  * Lit un fichier TXT tab-séparé et retourne les données.
+ * L'encodage (UTF-8 ou Windows-1252) est détecté fichier par fichier :
+ * voir utils/encodage.js.
  */
 const parseFile = (filePath, columns) => {
+    const { text, encoding } = decoderFichierBdpm(fs.readFileSync(filePath));
+    console.log(`   ${path.basename(filePath)} lu en ${encoding}`);
+
     return new Promise((resolve, reject) => {
-        const parser = parse({
+        parse(text, {
             delimiter: '\t',
             relax_column_count: true,
             columns: columns,
             skip_empty_lines: true,
             from_line: 1,
             quote: false, // les fichiers BDPM n'échappent pas les guillemets
-        });
-
-        const data = [];
-        fs.createReadStream(filePath)
-            .pipe(parser)
-            .on('data', (row) => data.push(row))
-            .on('end', () => resolve(data))
-            .on('error', (err) => reject(err));
+        }, (err, rows) => (err ? reject(err) : resolve(rows)));
     });
 };
 

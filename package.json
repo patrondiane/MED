@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node index.js",
+    "test": "node --test",
     "bdpm:download": "node scripts/downloadBDPM.js",
     "bdpm:import": "node scripts/importData.js",
     "bdpm:sync": "node scripts/sync.js",
