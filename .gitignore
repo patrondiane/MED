@@ -1,3 +1,17 @@
-   node_modules
-   .env
-   scripts/BDM_FILES
+# Dépendances
+node_modules/
+
+# Secrets : ne JAMAIS publier ces fichiers
+# (attention : aucune espace avant les motifs, sinon Git les ignore)
+.env
+.env.*
+!.env.example
+*credentials*.env
+
+# Fichiers BDPM bruts téléchargés (les résumés _last-*.json restent suivis)
+scripts/BDM_FILES/*.txt
+
+# Système
+.DS_Store
+Thumbs.db
+npm-debug.log*

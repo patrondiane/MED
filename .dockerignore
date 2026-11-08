@@ -1,14 +1,14 @@
-FROM node:22-alpine
-WORKDIR /app
+# Fichiers exclus de l'image Docker
+node_modules
+npm-debug.log*
+.git
+.github
+test
 
-COPY package*.json ./
-RUN npm install --omit=dev
+# Secrets : fournis par les variables d'environnement de l'hébergeur, jamais dans l'image
+.env
+.env.*
+*credentials*.env
 
-COPY . .
-# Dossier où le script de synchronisation écrit les fichiers BDPM et ses résumés
-RUN mkdir -p scripts/BDM_FILES && chown -R node:node /app
-
-ENV NODE_ENV=production
-EXPOSE 3000
-USER node
-CMD ["node", "index.js"]
+# Fichiers BDPM bruts (retéléchargés par la synchronisation)
+scripts/BDM_FILES/*.txt
