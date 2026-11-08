@@ -1,7 +1,7 @@
 // Service worker minimal : permet l'installation de l'appli et l'ouverture instantanée
 // de la coque (page + icônes). Les données (API) ne sont JAMAIS mises en cache :
 // un statut de médicament périmé serait trompeur.
-const CACHE = 'verif-medicament-v1';
+const CACHE = 'verif-medicament-v2'; // v2 : nouvelle interface
 const SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {

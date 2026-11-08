@@ -44,15 +44,20 @@ router.get('/search', async (req, res) => {
             .limit(60)
             .lean();
 
-        // Les noms qui COMMENCENT par la saisie d'abord, puis ordre alphabétique.
+        // Ordre : 1) noms qui COMMENCENT par la saisie, 2) médicaments encore
+        // commercialisés, 3) ordre alphabétique.
         const lower = q.toLowerCase();
-        medicaments.sort((a, b) => {
+        const resultats = medicaments.map(withStatut);
+        resultats.sort((a, b) => {
             const aStarts = (a.denomination || '').toLowerCase().startsWith(lower) ? 0 : 1;
             const bStarts = (b.denomination || '').toLowerCase().startsWith(lower) ? 0 : 1;
-            return aStarts - bStarts || (a.denomination || '').localeCompare(b.denomination || '', 'fr');
+            const aObsolete = a.statut_obsolescence.obsolete ? 1 : 0;
+            const bObsolete = b.statut_obsolescence.obsolete ? 1 : 0;
+            return aStarts - bStarts || aObsolete - bObsolete
+                || (a.denomination || '').localeCompare(b.denomination || '', 'fr');
         });
 
-        res.json(medicaments.slice(0, 25).map(withStatut));
+        res.json(resultats.slice(0, 25));
     } catch (err) {
         res.status(500).json({ message: 'Erreur serveur pendant la recherche.' });
     }

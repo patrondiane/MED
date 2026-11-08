@@ -3,189 +3,322 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Vérif Médicament — Statut, RCP et notice</title>
-<meta name="description" content="Vérifiez si un médicament est toujours commercialisé et consultez son RCP et sa notice. Données officielles BDPM.">
-<meta name="theme-color" content="#0F6E5D">
+<title>Vérif Médicament — Statut, composition, RCP et notice</title>
+<meta name="description" content="Vérifiez si un médicament est toujours commercialisé en France et consultez sa composition, son RCP et sa notice. Données officielles de la BDPM.">
+<meta name="theme-color" content="#0A7F5A" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1A16" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Vérif Médicament">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible+Next:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
+  /* ============ Jetons de conception ============ */
   :root {
-    --bg: #EFF3F2; --panel: #FFFFFF; --ink: #16302B; --ink-soft: #4B615C; --border: #D8E0DD;
-    --brand: #0F6E5D; --brand-dark: #0B4F43;
-    --ok: #2F7D4F; --ok-bg: #E4F1E8; --warn: #B5541D; --warn-bg: #FBEBE0;
+    --paper: #F2F5F3;        /* fond : gris-vert froid de comptoir */
+    --surface: #FFFFFF;
+    --sunken: #EAEFEC;
+    --ink: #10241E;
+    --ink-2: #4A5D57;
+    --line: #D3DBD7;
+    --cross: #0A7F5A;        /* vert de la croix de pharmacie */
+    --cross-deep: #075C41;
+    --ok: #0A7F5A;   --ok-tint: #E0F1E8;
+    --stop: #B3261E; --stop-tint: #FBE8E6;
+    --amber: #8F5300; --amber-tint: #FCEFD8;
+    --focus: #1A5FD0;
+    --r-lg: 18px; --r-md: 12px; --r-sm: 8px;
+    --font: 'Atkinson Hyperlegible Next', 'Atkinson Hyperlegible', system-ui, sans-serif;
+    --mono: 'Atkinson Hyperlegible Mono', ui-monospace, monospace;
+    color-scheme: light;
   }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0E1A16; --surface: #15241F; --sunken: #1B2D27;
+      --ink: #E7EFEB; --ink-2: #A3B5AE; --line: #2A3D36;
+      --cross: #3DBB8B; --cross-deep: #67D3A9;
+      --ok: #4CC796; --ok-tint: #173A2D;
+      --stop: #FF8A7E; --stop-tint: #3D1F1C;
+      --amber: #F2B65E; --amber-tint: #3A2C14;
+      --focus: #7FB0FF;
+      color-scheme: dark;
+    }
+  }
+
+  /* ============ Base ============ */
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh;
-    display: flex; justify-content: center;
-    padding: max(32px, env(safe-area-inset-top)) 16px max(64px, env(safe-area-inset-bottom));
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 400 1rem/1.55 var(--font);
+    padding: max(20px, env(safe-area-inset-top)) 16px max(48px, env(safe-area-inset-bottom));
   }
-  main { width: 100%; max-width: 560px; }
-  header { margin-bottom: 20px; }
-  header h1 { font-family: 'Fraunces', serif; font-size: 1.75rem; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
-  header p { margin: 0; color: var(--ink-soft); font-size: 0.95rem; max-width: 48ch; line-height: 1.5; }
+  .page { max-width: 640px; margin: 0 auto; }
+  a { color: var(--cross-deep); }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+  [hidden] { display: none !important; }
 
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  /* ============ En-tête ============ */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 36px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.05rem; text-decoration: none; color: var(--ink); }
+  .brand-mark { width: 34px; height: 34px; border-radius: 9px; background: var(--cross); display: grid; place-items: center; flex: none; }
+  .freshness { font-size: .82rem; color: var(--ink-2); text-align: right; }
+  .freshness strong { color: var(--ink); font-weight: 600; }
 
-  button { font-family: inherit; font-size: 0.9rem; font-weight: 500; border-radius: 8px; border: none; padding: 11px 16px; cursor: pointer; transition: background-color .15s ease; }
-  .btn-primary { background: var(--brand); color: #fff; flex: 1; }
-  .btn-primary:hover { background: var(--brand-dark); }
-  .btn-secondary { background: transparent; color: var(--ink-soft); border: 1px solid var(--border); }
-  .btn-secondary:hover { background: #F3F6F5; }
-  button:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .hero h1 { font-size: clamp(1.9rem, 6vw, 2.6rem); line-height: 1.08; font-weight: 800; letter-spacing: -.02em; margin: 0 0 12px; max-width: 19ch; }
+  .hero p { margin: 0 0 24px; color: var(--ink-2); max-width: 52ch; }
 
-  /* Onglets */
-  .tabs { display: flex; gap: 4px; padding: 4px; background: #E3EAE8; border-radius: 10px; margin-bottom: 16px; }
-  .tab { flex: 1; background: transparent; color: var(--ink-soft); padding: 9px 12px; }
-  .tab[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-  [role="tabpanel"][hidden] { display: none; }
+  /* ============ Recherche ============ */
+  .finder { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px; }
+  .segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--sunken); border-radius: var(--r-md); margin-bottom: 16px; }
+  .segmented button { border: 0; background: transparent; padding: 10px 12px; border-radius: var(--r-sm); font-weight: 600; color: var(--ink-2); display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .segmented button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 0 var(--line), 0 0 0 1px var(--line); }
 
-  /* Recherche par nom */
-  .search-box input[type="text"], .manual-entry input {
-    width: 100%; font-family: inherit; font-size: 1rem; padding: 13px 14px;
-    border-radius: 10px; border: 1px solid var(--border); background: #FBFCFC; color: var(--ink);
+  .field { position: relative; }
+  .field svg.lead { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--ink-2); pointer-events: none; }
+  .field input {
+    width: 100%; font: inherit; font-size: 1.08rem; color: var(--ink);
+    padding: 15px 46px 15px 44px; border-radius: var(--r-md);
+    border: 1.5px solid var(--line); background: var(--paper);
   }
-  #results-list { margin-top: 10px; border-top: 1px solid var(--border); display: none; }
-  #results-list.show { display: block; }
-  .result-row { width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid var(--border); border-radius: 0; padding: 12px 4px; }
-  .result-row:hover { background: #F3F6F5; }
-  .result-row:last-child { border-bottom: none; }
-  .result-name { font-weight: 600; font-size: .95rem; }
-  .result-meta { font-size: .82rem; color: var(--ink-soft); margin-top: 2px; }
-  .result-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; }
-  .result-dot.ok { background: var(--ok); } .result-dot.warn { background: var(--warn); }
-  #search-status { font-size: .85rem; color: var(--ink-soft); margin-top: 8px; min-height: 1em; }
+  .field input::-webkit-search-cancel-button, .field input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+  .field input::placeholder { color: var(--ink-2); opacity: .85; }
+  .field input:focus { outline: none; border-color: var(--cross); background: var(--surface); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cross) 22%, transparent); }
+  .clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; width: 34px; height: 34px; border-radius: 50%; color: var(--ink-2); display: grid; place-items: center; }
+  .clear:hover { background: var(--sunken); }
+
+  .hint { font-size: .85rem; color: var(--ink-2); margin: 10px 2px 0; min-height: 1.3em; }
+
+  .results { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
+  .results li + li { border-top: 1px solid var(--line); }
+  .result-row {
+    width: 100%; text-align: left; border: 0; background: transparent; padding: 12px 6px;
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; border-radius: var(--r-sm);
+  }
+  .result-row:hover, .result-row:focus-visible { background: var(--sunken); }
+  .result-name { font-weight: 600; line-height: 1.35; }
+  .result-name mark { background: color-mix(in srgb, var(--cross) 18%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+  .result-form { grid-column: 1; font-size: .87rem; color: var(--ink-2); }
+  .result-row .pill { grid-row: 1 / span 2; grid-column: 2; }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+  .pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.commercialise { color: var(--ok); background: var(--ok-tint); }
+  .pill.retire { color: var(--stop); background: var(--stop-tint); }
+  .pill.amm_non_active { color: var(--amber); background: var(--amber-tint); }
 
   /* Scan */
-  #scanner-region { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #0B211C; border-radius: 10px; overflow: hidden; }
-  #scanner-region video { width: 100% !important; height: 100% !important; object-fit: cover; }
-  .scanner-idle { display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(255,255,255,.7); font-size: .9rem; text-align: center; padding: 0 24px; }
-  .actions { display: flex; gap: 10px; margin-top: 14px; }
-  .manual-entry { display: flex; gap: 8px; margin-top: 10px; }
-  .manual-entry input { flex: 1; font-size: .95rem; padding: 10px 12px; }
-  .fine-print { font-size: .8rem; color: var(--ink-soft); margin: 10px 0 0; line-height: 1.5; }
+  .scanner { position: relative; aspect-ratio: 4 / 3; border-radius: var(--r-md); overflow: hidden; background: #0B1A15; }
+  .scanner video { width: 100% !important; height: 100% !important; object-fit: cover; }
+  .scanner-idle { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: #CFE3DA; padding: 24px; font-size: .95rem; }
+  .scanner-idle svg { display: block; margin: 0 auto 10px; opacity: .8; }
+  .row { display: flex; gap: 10px; margin-top: 12px; }
+  .btn { border: 1.5px solid transparent; border-radius: var(--r-md); padding: 12px 18px; font-weight: 600; }
+  .btn-primary { background: var(--cross); color: #fff; flex: 1; }
+  .btn-primary:hover { background: var(--cross-deep); }
+  @media (prefers-color-scheme: dark) { .btn-primary { color: #06140F; } }
+  .btn-ghost { background: transparent; border-color: var(--line); color: var(--ink); }
+  .btn-ghost:hover { background: var(--sunken); }
+  .manual { display: flex; gap: 8px; margin-top: 14px; }
+  .manual input { flex: 1; min-width: 0; font: inherit; font-family: var(--mono); font-size: 1rem; padding: 12px; border-radius: var(--r-md); border: 1.5px solid var(--line); background: var(--paper); color: var(--ink); }
+  .fine { font-size: .84rem; color: var(--ink-2); margin: 10px 2px 0; }
 
-  /* Verdict */
-  #result { display: none; } #result.show { display: block; }
-  .verdict { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 4px; }
-  .verdict-word { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.1; }
-  .verdict.ok .verdict-word { color: var(--ok); } .verdict.warn .verdict-word { color: var(--warn); }
-  .verdict-badge { font-size: .75rem; padding: 3px 8px; border-radius: 999px; font-weight: 500; }
-  .verdict.ok .verdict-badge { background: var(--ok-bg); color: var(--ok); }
-  .verdict.warn .verdict-badge { background: var(--warn-bg); color: var(--warn); }
-  .med-name { font-size: 1.05rem; font-weight: 600; margin: 14px 0 2px; }
-  .med-form { color: var(--ink-soft); font-size: .9rem; margin-bottom: 16px; }
-  .reason { font-size: .9rem; color: var(--ink-soft); line-height: 1.5; margin-bottom: 16px; padding: 12px 14px; background: #F3F6F5; border-radius: 8px; }
-  dl.details { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0; font-size: .88rem; }
-  dl.details dt { color: var(--ink-soft); } dl.details dd { margin: 0; text-align: right; }
+  .alert { margin-top: 14px; padding: 12px 14px; border-radius: var(--r-md); background: var(--stop-tint); color: var(--stop); font-size: .92rem; }
 
-  /* Documents */
-  .doc-section { display: none; } .doc-section.show { display: block; }
-  .doc-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
-  .doc-title { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 600; }
-  .doc-link { font-size: .82rem; color: var(--brand); text-decoration: none; white-space: nowrap; }
-  .doc-link:hover { text-decoration: underline; }
-  details.doc-sec { border-top: 1px solid var(--border); padding: 10px 0; }
-  details.doc-sec summary { cursor: pointer; font-weight: 600; font-size: .92rem; }
-  .doc-text { font-size: .88rem; line-height: 1.6; white-space: pre-line; margin-top: 8px; color: var(--ink); }
-  .doc-note { font-size: .85rem; color: var(--ink-soft); font-style: italic; line-height: 1.5; }
-  .doc-updated { font-size: .78rem; color: var(--ink-soft); margin-top: 8px; }
+  /* ============ Fiche résultat : la « face de boîte » ============ */
+  .box { margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+  .band { display: flex; align-items: center; gap: 12px; padding: 16px 20px; color: #fff; }
+  .band.commercialise { background: var(--ok); }
+  .band.retire { background: var(--stop); }
+  .band.amm_non_active { background: var(--amber); }
+  @media (prefers-color-scheme: dark) { .band { color: #0B1512; } }
+  .band svg { flex: none; }
+  .band-label { font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em; line-height: 1.15; }
+  .band-sub { font-size: .88rem; opacity: .92; }
 
-  #error-msg { display: none; color: var(--warn); background: var(--warn-bg); padding: 12px 14px; border-radius: 8px; font-size: .9rem; margin-top: 12px; }
-  #error-msg.show { display: block; }
-  #sync-status { text-align: center; font-size: .8rem; color: var(--ink-soft); margin: 0 0 16px; }
-  #install-box { display: none; margin-bottom: 16px; align-items: center; gap: 12px; justify-content: space-between; }
-  #install-box.show { display: flex; }
-  #install-box span { font-size: .88rem; color: var(--ink-soft); line-height: 1.4; }
-  footer { font-size: .78rem; color: var(--ink-soft); line-height: 1.6; text-align: center; margin-top: 24px; }
+  .box-body { padding: 20px; }
+  .denomination { font-size: 1.45rem; font-weight: 800; line-height: 1.2; letter-spacing: -.01em; margin: 0 0 6px; }
+  .galenic { color: var(--ink-2); margin: 0 0 18px; }
+  .codes { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; padding: 0; list-style: none; }
+  .codes li { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 6px 10px; font-size: .85rem; }
+  .codes li span { color: var(--ink-2); margin-right: 6px; font-family: var(--font); }
+  .reason { margin: 0 0 18px; padding: 12px 14px; background: var(--sunken); border-radius: var(--r-md); font-size: .93rem; }
+
+  .facts { display: grid; grid-template-columns: minmax(130px, 38%) 1fr; margin: 0; border-top: 1px solid var(--line); }
+  .facts dt, .facts dd { padding: 10px 0; border-bottom: 1px solid var(--line); margin: 0; font-size: .93rem; }
+  .facts dt { color: var(--ink-2); padding-right: 12px; }
+
+  .box h2 { font-size: 1.02rem; font-weight: 800; margin: 24px 0 10px; }
+  .compo { list-style: none; margin: 0; padding: 0; }
+  .compo li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: .93rem; }
+  .compo li strong { font-weight: 600; }
+  .compo .dose { color: var(--ink-2); text-align: right; }
+  .presentations { list-style: none; margin: 0; padding: 0; }
+  .presentations li { padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: .92rem; }
+  .presentations .cip { display: block; color: var(--ink-2); font-size: .84rem; margin-top: 2px; }
+  .presentations li.scanned { border-left: 3px solid var(--cross); padding-left: 10px; }
+
+  /* ============ Documents ============ */
+  .docs { margin-top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 4px 20px 16px; }
+  .docs-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 16px; }
+  .docs-head h2 { margin: 0; font-size: 1.1rem; font-weight: 800; }
+  .ext { font-size: .88rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+  details.sec { border-top: 1px solid var(--line); }
+  details.sec:first-of-type { margin-top: 12px; }
+  details.sec summary { list-style: none; padding: 13px 0; font-weight: 600; display: flex; justify-content: space-between; gap: 12px; cursor: pointer; }
+  details.sec summary::-webkit-details-marker { display: none; }
+  details.sec summary::after { content: '+'; font-weight: 400; font-size: 1.3rem; line-height: 1; color: var(--ink-2); }
+  details.sec[open] summary::after { content: '–'; }
+  .sec-text { white-space: pre-line; font-size: .94rem; line-height: 1.65; padding-bottom: 14px; max-width: 68ch; }
+  .note { color: var(--ink-2); font-size: .88rem; margin: 10px 0 0; }
+  .skeleton { height: 12px; border-radius: 6px; background: var(--sunken); margin: 14px 0; }
+  .skeleton:nth-child(2) { width: 80%; } .skeleton:nth-child(3) { width: 60%; }
+
+  /* ============ Installation & pied de page ============ */
+  .install { display: flex; align-items: center; gap: 12px; justify-content: space-between; margin-top: 16px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: var(--r-md); font-size: .9rem; color: var(--ink-2); }
+  footer { margin-top: 40px; font-size: .84rem; color: var(--ink-2); line-height: 1.6; }
+  footer p { margin: 0 0 6px; max-width: 64ch; }
+
+  @media (max-width: 420px) {
+    .long-tab { display: none; }
+    .topbar { margin-bottom: 26px; }
+    .freshness .long { display: none; }
+    .facts { grid-template-columns: 1fr; }
+    .facts dt { border-bottom: 0; padding-bottom: 0; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .box.reveal .band { animation: band-in .35s ease-out both; }
+    @keyframes band-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Toujours commercialisé ?</h1>
-    <p>Cherchez un médicament par son nom ou scannez sa boîte pour connaître son statut, son résumé des caractéristiques (RCP) et sa notice.</p>
+<div class="page">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Vérif Médicament, accueil">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24"><g transform="rotate(-40 12 12)"><rect x="3" y="8.5" width="18" height="7" rx="3.5" fill="#fff"/><path d="M12 8.5h5.5a3.5 3.5 0 0 1 0 7H12z" fill="#9FD3BF"/></g></svg>
+      </span>
+      Vérif Médicament
+    </a>
+    <p class="freshness" id="freshness" aria-live="polite"></p>
   </header>
 
-  <div class="card" id="install-box">
-    <span id="install-text">Installez l’application sur votre écran d’accueil.</span>
-    <button class="btn-primary" id="btn-install" style="flex:none; display:none;">Installer</button>
-  </div>
+  <main>
+    <section class="hero">
+      <h1>Ce médicament est-il toujours commercialisé&#8239;?</h1>
+      <p>Recherchez par nom ou scannez la boîte : statut officiel, composition, présentations, RCP et notice.</p>
+    </section>
 
-  <section class="card">
-    <div class="tabs" role="tablist" aria-label="Mode de recherche">
-      <button class="tab" role="tab" id="tab-name" aria-selected="true" aria-controls="panel-name">Par nom</button>
-      <button class="tab" role="tab" id="tab-scan" aria-selected="false" aria-controls="panel-scan">Scanner</button>
-    </div>
-
-    <div role="tabpanel" id="panel-name" aria-labelledby="tab-name">
-      <div class="search-box">
-        <input type="text" id="search-input" placeholder="Nom du médicament (ex. Doliprane, Amoxicilline…)" autocomplete="off" aria-label="Nom du médicament">
-        <div id="results-list"></div>
-        <div id="search-status" aria-live="polite"></div>
+    <section class="finder" aria-label="Recherche de médicament">
+      <div class="segmented" role="tablist" aria-label="Mode de recherche">
+        <button role="tab" id="tab-name" aria-selected="true" aria-controls="panel-name">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          Par nom
+        </button>
+        <button role="tab" id="tab-scan" aria-selected="false" aria-controls="panel-scan" tabindex="-1">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg>
+          <span>Scanner<span class="long-tab"> la boîte</span></span>
+        </button>
       </div>
-    </div>
 
-    <div role="tabpanel" id="panel-scan" aria-labelledby="tab-scan" hidden>
-      <div id="scanner-region">
-        <div class="scanner-idle" id="scanner-idle">Appuyez sur « Scanner » pour activer la caméra</div>
+      <div role="tabpanel" id="panel-name" aria-labelledby="tab-name">
+        <div class="field">
+          <label for="search-input" class="visually-hidden">Nom du médicament</label>
+          <svg class="lead" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="search-input" placeholder="Doliprane, amoxicilline…" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-describedby="search-status" aria-controls="results-list">
+          <button class="clear" id="btn-clear" type="button" aria-label="Effacer la recherche" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <p class="hint" id="search-status" aria-live="polite">Saisissez au moins deux lettres.</p>
+        <ul class="results" id="results-list" aria-label="Résultats" hidden></ul>
       </div>
-      <div class="actions">
-        <button class="btn-primary" id="btn-scan">Scanner</button>
-        <button class="btn-secondary" id="btn-stop" style="display:none;">Arrêter</button>
+
+      <div role="tabpanel" id="panel-scan" aria-labelledby="tab-scan" hidden>
+        <div class="scanner" id="scanner-region">
+          <div class="scanner-idle" id="scanner-idle">
+            <div>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg>
+              Placez le code-barres ou le code DataMatrix de la boîte face à la caméra.
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn btn-primary" id="btn-scan" type="button">Activer la caméra</button>
+          <button class="btn btn-ghost" id="btn-stop" type="button" hidden>Arrêter</button>
+        </div>
+        <div class="manual">
+          <label for="manual-code" class="visually-hidden">Code CIP13 ou CIP7</label>
+          <input type="text" id="manual-code" placeholder="Code CIP13 (13 chiffres)" inputmode="numeric" maxlength="13" autocomplete="off">
+          <button class="btn btn-ghost" id="btn-manual" type="button">Vérifier</button>
+        </div>
+        <p class="fine">Le code CIP13 est imprimé sous le code-barres, sur le côté de la boîte.</p>
       </div>
-      <div class="manual-entry">
-        <input type="text" id="manual-code" placeholder="Ou saisissez le code CIP13 (13 chiffres)" inputmode="numeric" maxlength="13" aria-label="Code CIP13">
-        <button class="btn-secondary" id="btn-manual">Vérifier</button>
+
+      <div class="alert" id="error-msg" role="alert" hidden></div>
+    </section>
+
+    <article class="box" id="result" hidden aria-labelledby="med-name">
+      <div class="band" id="band">
+        <svg id="band-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"></svg>
+        <div>
+          <div class="band-label" id="band-label"></div>
+          <div class="band-sub" id="band-sub"></div>
+        </div>
       </div>
-      <p class="fine-print">Le scan lit le code-barres ou le code DataMatrix de la boîte. Sinon, saisissez le code CIP13 imprimé dessous.</p>
+      <div class="box-body">
+        <h2 class="denomination" id="med-name" tabindex="-1"></h2>
+        <p class="galenic" id="med-form"></p>
+        <ul class="codes mono" id="codes"></ul>
+        <p class="reason" id="reason"></p>
+        <dl class="facts" id="facts"></dl>
+        <div id="compo-block" hidden>
+          <h2>Composition</h2>
+          <ul class="compo" id="compo"></ul>
+        </div>
+        <div id="pres-block" hidden>
+          <h2>Présentations</h2>
+          <ul class="presentations" id="presentations"></ul>
+        </div>
+      </div>
+    </article>
+
+    <section class="docs" id="rcp-section" hidden aria-labelledby="rcp-title">
+      <div class="docs-head">
+        <h2 id="rcp-title">Résumé des caractéristiques du produit</h2>
+        <a class="ext" id="rcp-link" href="#" target="_blank" rel="noopener">Document officiel<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span class="visually-hidden"> (nouvel onglet)</span></a>
+      </div>
+      <div id="rcp-content"></div>
+    </section>
+
+    <section class="docs" id="notice-section" hidden aria-labelledby="notice-title">
+      <div class="docs-head">
+        <h2 id="notice-title">Notice patient</h2>
+        <a class="ext" id="notice-link" href="#" target="_blank" rel="noopener">Document officiel<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span class="visually-hidden"> (nouvel onglet)</span></a>
+      </div>
+      <div id="notice-content"></div>
+    </section>
+
+    <div class="install" id="install-box" hidden>
+      <span id="install-text">Ajoutez Vérif Médicament à votre écran d’accueil.</span>
+      <button class="btn btn-primary" id="btn-install" type="button" style="flex:none" hidden>Installer</button>
     </div>
-
-    <div id="error-msg" role="alert"></div>
-  </section>
-
-  <p id="sync-status"></p>
-
-  <section class="card" id="result">
-    <div class="verdict" id="verdict">
-      <span class="verdict-word" id="verdict-word"></span>
-      <span class="verdict-badge" id="verdict-badge"></span>
-    </div>
-    <div class="med-name" id="med-name"></div>
-    <div class="med-form" id="med-form"></div>
-    <div class="reason" id="reason"></div>
-    <dl class="details" id="details"></dl>
-  </section>
-
-  <section class="card doc-section" id="rcp-section">
-    <div class="doc-header">
-      <span class="doc-title">Résumé des caractéristiques du produit</span>
-      <a class="doc-link" id="rcp-link" href="#" target="_blank" rel="noopener">Site officiel ↗</a>
-    </div>
-    <div id="rcp-content"></div>
-  </section>
-
-  <section class="card doc-section" id="notice-section">
-    <div class="doc-header">
-      <span class="doc-title">Notice patient</span>
-      <a class="doc-link" id="notice-link" href="#" target="_blank" rel="noopener">Site officiel ↗</a>
-    </div>
-    <div id="notice-content"></div>
-  </section>
+  </main>
 
   <footer>
-    Informations issues de la Base de Données Publique des Médicaments (ANSM, HAS, Assurance Maladie), à titre indicatif.<br>
-    Elles ne remplacent pas l’avis d’un médecin ou d’un pharmacien. En cas de doute, demandez conseil à un professionnel de santé.
+    <p>Source : Base de données publique des médicaments (ANSM, HAS, Assurance Maladie), <a href="https://base-donnees-publique.medicaments.gouv.fr" target="_blank" rel="noopener">base-donnees-publique.medicaments.gouv.fr</a>. Données reproduites sans modification<span id="footer-date"></span>.</p>
+    <p>Informations données à titre indicatif : elles ne remplacent pas l’avis d’un médecin ou d’un pharmacien.</p>
   </footer>
-</main>
+</div>
 
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 <script>
   const API_BASE = '/api/v1/medicaments';
   const $ = (id) => document.getElementById(id);
@@ -194,14 +327,24 @@
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
 
-  function showError(message) { const el = $('error-msg'); el.textContent = message; el.classList.add('show'); }
-  function clearError() { $('error-msg').classList.remove('show'); }
+  /** Noms propres (substances, laboratoires) : « ALMUS FRANCE » → « Almus France ». */
+  const casse = (t) => (t || '').toLowerCase().replace(/(^|[\s(/-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
+  /** Phrases (formes, conditionnements) : majuscule initiale seulement. */
+  const phrase = (t) => { const s = (t || '').trim(); return s ? s[0].toUpperCase() + s.slice(1) : ''; };
 
-  /* ---------- Onglets ---------- */
-  function selectTab(name) {
+  function showError(message) { const el = $('error-msg'); el.textContent = message; el.hidden = false; }
+  function clearError() { $('error-msg').hidden = true; }
+
+  /* ---------- Onglets (clic + flèches du clavier) ---------- */
+  const tabs = [$('tab-name'), $('tab-scan')];
+  function selectTab(name, focus = false) {
     const isName = name === 'name';
-    $('tab-name').setAttribute('aria-selected', isName);
-    $('tab-scan').setAttribute('aria-selected', !isName);
+    tabs.forEach((t) => {
+      const on = (t.id === 'tab-name') === isName;
+      t.setAttribute('aria-selected', on);
+      t.tabIndex = on ? 0 : -1;
+      if (on && focus) t.focus();
+    });
     $('panel-name').hidden = !isName;
     $('panel-scan').hidden = isName;
     if (isName) stopScanner();
@@ -209,22 +352,35 @@
   }
   $('tab-name').addEventListener('click', () => selectTab('name'));
   $('tab-scan').addEventListener('click', () => selectTab('scan'));
+  tabs.forEach((t) => t.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') selectTab(t.id === 'tab-name' ? 'scan' : 'name', true);
+  }));
 
   /* ---------- Recherche par nom ---------- */
   let debounceTimer = null;
   let searchController = null;
+  const input = $('search-input');
 
-  $('search-input').addEventListener('input', () => {
+  function resetResults(message = 'Saisissez au moins deux lettres.') {
+    $('results-list').hidden = true;
+    $('results-list').innerHTML = '';
+    $('search-status').textContent = message;
+  }
+
+  input.addEventListener('input', () => {
     clearTimeout(debounceTimer);
-    const q = $('search-input').value.trim();
-    if (q.length < 2) {
-      $('results-list').classList.remove('show');
-      $('results-list').innerHTML = '';
-      $('search-status').textContent = '';
-      return;
-    }
-    $('search-status').textContent = 'Recherche…';
-    debounceTimer = setTimeout(() => runSearch(q), 300);
+    const q = input.value.trim();
+    $('btn-clear').hidden = input.value === '';
+    if (q.length < 2) { resetResults(); return; }
+    $('search-status').textContent = 'Recherche en cours…';
+    debounceTimer = setTimeout(() => runSearch(q), 250);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { const first = document.querySelector('.result-row'); if (first) { e.preventDefault(); first.focus(); } }
+    if (e.key === 'Escape') { $('btn-clear').click(); }
+  });
+  $('btn-clear').addEventListener('click', () => {
+    input.value = ''; $('btn-clear').hidden = true; resetResults(); input.focus();
   });
 
   async function runSearch(q) {
@@ -234,34 +390,59 @@
     try {
       const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(q)}`, { signal: searchController.signal });
       const data = await res.json();
-      if (!res.ok) { showError(data.message || 'Erreur lors de la recherche.'); return; }
-      renderResultsList(data);
+      if (!res.ok) { showError(data.message || 'La recherche a échoué.'); return; }
+      renderResultsList(data, q);
     } catch (err) {
-      if (err.name !== 'AbortError') showError('Impossible de contacter le serveur.');
+      if (err.name !== 'AbortError') {
+        resetResults('');
+        showError('Le serveur ne répond pas. S’il était en veille, il redémarre : réessayez dans quelques secondes.');
+      }
     }
   }
 
-  function renderResultsList(medicaments) {
-    const list = $('results-list');
-    if (medicaments.length === 0) {
-      list.innerHTML = ''; list.classList.remove('show');
-      $('search-status').textContent = 'Aucun médicament trouvé pour cette recherche.';
-      return;
-    }
-    $('search-status').textContent = '';
-    list.innerHTML = medicaments.map((m) => `
-      <button class="result-row" data-cis="${escapeHtml(m.code_cis)}">
-        <div class="result-name"><span class="result-dot ${m.statut_obsolescence.obsolete ? 'warn' : 'ok'}"></span>${escapeHtml(m.denomination || '—')}</div>
-        <div class="result-meta">${escapeHtml(m.forme_pharmaceutique || '')} · ${escapeHtml(m.statut_obsolescence.label)}</div>
-      </button>`).join('');
-    list.classList.add('show');
-    list.querySelectorAll('.result-row').forEach((btn) => btn.addEventListener('click', () => selectMedicament(btn.dataset.cis)));
+  function surligner(texte, q) {
+    const safe = escapeHtml(texte);
+    const i = texte.toLowerCase().indexOf(q.toLowerCase());
+    if (i < 0) return safe;
+    return escapeHtml(texte.slice(0, i)) + '<mark>' + escapeHtml(texte.slice(i, i + q.length)) + '</mark>' + escapeHtml(texte.slice(i + q.length));
   }
+
+  function renderResultsList(medicaments, q) {
+    const list = $('results-list');
+    if (medicaments.length === 0) { resetResults(`Aucun médicament ne correspond à « ${q} ». Vérifiez l’orthographe ou essayez le nom de la substance.`); return; }
+    $('search-status').textContent = medicaments.length === 25
+      ? '25 premiers résultats. Précisez le nom pour affiner.'
+      : `${medicaments.length} résultat${medicaments.length > 1 ? 's' : ''}.`;
+    list.innerHTML = medicaments.map((m) => `
+      <li><button class="result-row" type="button" data-cis="${escapeHtml(m.code_cis)}">
+        <span class="result-name">${surligner(m.denomination || '—', q)}</span>
+        <span class="result-form">${escapeHtml(m.forme_pharmaceutique || '')}</span>
+        <span class="pill ${escapeHtml(m.statut_obsolescence.code)}">${escapeHtml(m.statut_obsolescence.label)}</span>
+      </button></li>`).join('');
+    list.hidden = false;
+    const rows = [...list.querySelectorAll('.result-row')];
+    rows.forEach((btn, i) => {
+      btn.addEventListener('click', () => selectMedicament(btn.dataset.cis));
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' && rows[i + 1]) { e.preventDefault(); rows[i + 1].focus(); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); (rows[i - 1] || input).focus(); }
+      });
+    });
+  }
+
+  function replierResultats() {
+    if ($('results-list').innerHTML) {
+      $('results-list').hidden = true;
+      $('search-status').textContent = 'Fiche affichée ci-dessous. Cliquez dans le champ pour revoir les résultats.';
+    }
+  }
+  input.addEventListener('focus', () => {
+    if ($('results-list').innerHTML && input.value.trim().length >= 2 && $('results-list').hidden) { $('results-list').hidden = false; $('search-status').textContent = 'Choisissez un médicament dans la liste.'; }
+  });
 
   async function selectMedicament(cis) {
     clearError();
-    $('results-list').classList.remove('show');
-    $('search-input').value = '';
+    replierResultats();
     hideDocuments();
     try {
       const res = await fetch(`${API_BASE}/${encodeURIComponent(cis)}`);
@@ -270,7 +451,7 @@
       renderResult(data);
       loadDocuments(data.code_cis);
     } catch (err) {
-      showError('Impossible de contacter le serveur.');
+      showError('Le serveur ne répond pas. Réessayez dans quelques secondes.');
     }
   }
 
@@ -290,9 +471,9 @@
 
   async function startScanner() {
     clearError();
-    $('result').classList.remove('show');
+    $('result').hidden = true;
     hideDocuments();
-    if (typeof Html5Qrcode === 'undefined') { showError('Le module de scan n’a pas pu se charger. Saisissez le code manuellement.'); return; }
+    if (typeof Html5Qrcode === 'undefined') { showError('Le module de scan n’a pas pu se charger. Saisissez le code CIP13 ci-dessous.'); return; }
 
     html5QrCode = new Html5Qrcode('scanner-region');
     try {
@@ -311,16 +492,16 @@
           const code = extractCode(decodedText);
           stopScanner();
           if (code) lookupCode(code);
-          else showError('Code lu mais non reconnu comme un code médicament. Saisissez le CIP13 manuellement.');
+          else showError('Code lu, mais ce n’est pas un code de médicament. Saisissez le CIP13 imprimé sur la boîte.');
         },
         () => {}
       );
       scanning = true;
-      $('scanner-idle').style.display = 'none';
-      $('btn-scan').style.display = 'none';
-      $('btn-stop').style.display = 'block';
+      $('scanner-idle').hidden = true;
+      $('btn-scan').hidden = true;
+      $('btn-stop').hidden = false;
     } catch (err) {
-      showError('Impossible d’accéder à la caméra (autorisation refusée, ou page non sécurisée). Saisissez le code manuellement.');
+      showError('La caméra n’est pas accessible (autorisation refusée ou page non sécurisée). Saisissez le code CIP13 ci-dessous.');
     }
   }
 
@@ -329,9 +510,9 @@
       scanning = false;
       try { await html5QrCode.stop(); html5QrCode.clear(); } catch (e) { /* déjà arrêté */ }
     }
-    $('scanner-idle').style.display = 'flex';
-    $('btn-scan').style.display = 'block';
-    $('btn-stop').style.display = 'none';
+    $('scanner-idle').hidden = false;
+    $('btn-scan').hidden = false;
+    $('btn-stop').hidden = true;
   }
 
   async function lookupCode(code) {
@@ -340,11 +521,11 @@
     try {
       const res = await fetch(`${API_BASE}/scan/${encodeURIComponent(code)}`);
       const data = await res.json();
-      if (!res.ok) { showError(data.message || 'Code non reconnu dans la base BDPM.'); return; }
+      if (!res.ok) { showError(data.message || 'Ce code n’existe pas dans la base officielle.'); return; }
       renderResult(data);
       loadDocuments(data.code_cis);
     } catch (err) {
-      showError('Impossible de contacter le serveur. Réessayez dans un instant.');
+      showError('Le serveur ne répond pas. Réessayez dans quelques secondes.');
     }
   }
 
@@ -352,47 +533,91 @@
   $('btn-stop').addEventListener('click', stopScanner);
   $('btn-manual').addEventListener('click', () => {
     const code = extractCode($('manual-code').value);
-    if (code) lookupCode(code); else showError('Saisissez un code CIP13 (13 chiffres) ou CIP7 (7 chiffres) valide.');
+    if (code) lookupCode(code); else showError('Saisissez un code CIP13 (13 chiffres) ou CIP7 (7 chiffres).');
   });
   $('manual-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn-manual').click(); });
 
-  /* ---------- Résultat ---------- */
+  /* ---------- Fiche résultat ---------- */
+  const ICONES = {
+    commercialise: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    retire: '<circle cx="12" cy="12" r="8.5"/><path d="M6 18 18 6"/>',
+    amm_non_active: '<path d="M12 4 2.8 19.5h18.4L12 4z"/><path d="M12 10v4.5M12 17.2v.3"/>',
+  };
+  const SOUS_TITRES = {
+    commercialise: 'Autorisation active, médicament déclaré commercialisé',
+    retire: 'Autorisation active, mais plus commercialisé',
+    amm_non_active: 'L’autorisation de mise sur le marché n’est plus active',
+  };
+
+  const dateFr = (d) => (d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : null);
+
+  /** Une ligne par substance : la fraction thérapeutique (FT) dosée si elle existe, sinon la substance active (SA). */
+  function substances(composition) {
+    const parLiaison = new Map();
+    for (const c of composition || []) {
+      const cle = c.numero_liaison_sa_ft || c.denomination_substance;
+      const actuel = parLiaison.get(cle);
+      if (!actuel || (c.nature_composant === 'FT' && actuel.nature_composant !== 'FT')) parLiaison.set(cle, c);
+    }
+    return [...parLiaison.values()];
+  }
+
   function renderResult(m) {
     const statut = m.statut_obsolescence;
-    $('verdict').className = 'verdict ' + (statut.obsolete ? 'warn' : 'ok');
-    $('verdict-word').textContent = statut.obsolete ? 'Obsolète' : 'Toujours valide';
-    $('verdict-badge').textContent = statut.label;
+    const box = $('result');
+    $('band').className = 'band ' + statut.code;
+    $('band-icon').innerHTML = ICONES[statut.code] || '';
+    $('band-label').textContent = statut.label;
+    $('band-sub').textContent = SOUS_TITRES[statut.code] || '';
+
     $('med-name').textContent = m.denomination || '—';
-    $('med-form').textContent = [m.forme_pharmaceutique, (m.voies_administration || []).join(', ')].filter(Boolean).join(' · ');
-    $('reason').textContent = statut.reason;
+    const voies = (m.voies_administration || []).join(', ');
+    $('med-form').textContent = [phrase(m.forme_pharmaceutique), voies && `voie ${voies}`].filter(Boolean).join(', ');
 
     const scanned = m.presentation_scannee;
-    const rows = [
-      ['Code CIS', m.code_cis],
-      scanned ? ['Code-barres scanné', scanned.code_cip13 || scanned.code_cip7] : null,
-      ['Statut AMM', m.statut_amm],
-      ['État de commercialisation', m.etat_commercialisation],
-      ['Titulaire(s)', (m.titulaires || []).join(', ')],
-    ].filter((row) => row && row[1]);
-    $('details').innerHTML = rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('');
+    const codes = [['CIS', m.code_cis], scanned ? ['Code-barres', scanned.code_cip13 || scanned.code_cip7] : null].filter(Boolean);
+    $('codes').innerHTML = codes.map(([k, v]) => `<li><span>${escapeHtml(k)}</span>${escapeHtml(v)}</li>`).join('');
 
-    $('result').classList.add('show');
-    $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    $('reason').textContent = statut.reason;
+
+    const faits = [
+      ['Autorisation (AMM)', m.statut_amm],
+      ['Date d’autorisation', dateFr(m.date_amm)],
+      ['Commercialisation', m.etat_commercialisation],
+      ['Titulaire', (m.titulaires || []).map(casse).join(', ')],
+      ['Surveillance renforcée', m.surveillance_renforcee === 'Oui' ? 'Oui' : null],
+    ].filter(([, v]) => v);
+    $('facts').innerHTML = faits.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('');
+
+    const subs = substances(m.composition);
+    $('compo-block').hidden = subs.length === 0;
+    $('compo').innerHTML = subs.map((s) => `<li><strong>${escapeHtml(casse(s.denomination_substance))}</strong><span class="dose">${escapeHtml([s.dosage_substance, s.reference_dosage && `pour ${s.reference_dosage}`].filter(Boolean).join(' '))}</span></li>`).join('');
+
+    const pres = (m.presentations || []).filter((p) => p && typeof p === 'object' && p.libelle);
+    if (scanned && !pres.some((p) => p.code_cip13 === scanned.code_cip13)) pres.unshift(scanned);
+    $('pres-block').hidden = pres.length === 0;
+    $('presentations').innerHTML = pres.slice(0, 8).map((p) => `
+      <li class="${scanned && p.code_cip13 === scanned.code_cip13 ? 'scanned' : ''}">${escapeHtml(phrase(p.libelle))}
+        <span class="cip">CIP13 <span class="mono">${escapeHtml(p.code_cip13 || '—')}</span>${p.etat_commercialisation ? ' — ' + escapeHtml(p.etat_commercialisation) : ''}</span>
+      </li>`).join('') + (pres.length > 8 ? `<li class="note">et ${pres.length - 8} autre(s) présentation(s).</li>` : '');
+
+    box.hidden = false;
+    box.classList.remove('reveal'); void box.offsetWidth; box.classList.add('reveal');
+    box.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    $('med-name').focus({ preventScroll: true });
   }
 
   /* ---------- RCP & notice ---------- */
-  function hideDocuments() {
-    $('rcp-section').classList.remove('show');
-    $('notice-section').classList.remove('show');
-  }
+  function hideDocuments() { $('rcp-section').hidden = true; $('notice-section').hidden = true; }
 
+  const SQUELETTE = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><p class="note">Chargement depuis le site officiel…</p>';
   let documentsRequestId = 0;
   async function loadDocuments(cis) {
     const requestId = ++documentsRequestId;
-    $('rcp-section').classList.add('show');
-    $('notice-section').classList.add('show');
-    $('rcp-content').innerHTML = '<p class="doc-note">Chargement du RCP…</p>';
-    $('notice-content').innerHTML = '<p class="doc-note">Chargement de la notice…</p>';
+    $('rcp-section').hidden = false;
+    $('notice-section').hidden = false;
+    $('rcp-content').innerHTML = SQUELETTE;
+    $('notice-content').innerHTML = SQUELETTE;
 
     try {
       const res = await fetch(`${API_BASE}/${encodeURIComponent(cis)}/documents`);
@@ -403,7 +628,7 @@
       renderDocument(data.notice, 'notice');
     } catch (err) {
       if (requestId !== documentsRequestId) return;
-      const msg = '<p class="doc-note">Documents momentanément indisponibles. Réessayez dans un instant.</p>';
+      const msg = '<p class="note">Le site officiel n’a pas répondu. Ouvrez le document officiel avec le lien ci-dessus, ou réessayez dans un instant.</p>';
       $('rcp-content').innerHTML = msg; $('notice-content').innerHTML = msg;
     }
   }
@@ -411,29 +636,30 @@
   function renderDocument(doc, prefix) {
     $(`${prefix}-link`).href = doc.url;
     const el = $(`${prefix}-content`);
-
     if (!doc.sections || doc.sections.length === 0) {
-      el.innerHTML = '<p class="doc-note">Résumé non disponible automatiquement pour ce médicament. Consultez le document complet sur le site officiel (lien ci-dessus).</p>';
+      el.innerHTML = '<p class="note">Les rubriques n’ont pas pu être extraites automatiquement pour ce médicament. Le document officiel est disponible avec le lien ci-dessus.</p>';
       return;
     }
     const sections = doc.sections.map((s, i) => `
-      <details class="doc-sec"${i === 0 ? ' open' : ''}>
+      <details class="sec"${i === 0 ? ' open' : ''}>
         <summary>${escapeHtml(s.titre)}</summary>
-        <div class="doc-text">${escapeHtml(s.texte)}</div>
+        <div class="sec-text">${escapeHtml(s.texte)}</div>
       </details>`).join('');
-    const updated = doc.derniere_maj ? `<div class="doc-updated">Mis à jour le ${escapeHtml(doc.derniere_maj)}</div>` : '';
-    el.innerHTML = sections + `<p class="doc-note" style="margin-top:8px">Extraits : le document complet fait foi.</p>` + updated;
+    const updated = doc.derniere_maj ? ` Document mis à jour le ${escapeHtml(doc.derniere_maj)}.` : '';
+    el.innerHTML = sections + `<p class="note">Extraits : seul le document officiel complet fait foi.${updated}</p>`;
   }
 
   /* ---------- Fraîcheur des données ---------- */
   (async function showSyncStatus() {
     try {
       const data = await (await fetch('/api/v1/sync/status')).json();
-      if (data.last_import && data.last_import.imported_at) {
-        const date = new Date(data.last_import.imported_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-        $('sync-status').textContent = `Données BDPM à jour au ${date}`;
+      const d = data.last_import && data.last_import.success !== false && data.last_import.imported_at;
+      if (d) {
+        const date = dateFr(d);
+        $('freshness').innerHTML = `<span class="long">Données officielles du </span><strong>${escapeHtml(date)}</strong>`;
+        $('footer-date').textContent = `, mises à jour le ${date}`;
       }
-    } catch (e) { /* silencieux */ }
+    } catch (e) { /* silencieux : l'indication de fraîcheur est facultative */ }
   })();
 
   /* ---------- Application installable ---------- */
@@ -443,24 +669,24 @@
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    $('btn-install').style.display = 'block';
-    $('install-box').classList.add('show');
+    $('btn-install').hidden = false;
+    $('install-box').hidden = false;
   });
   $('btn-install').addEventListener('click', async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     await deferredPrompt.userChoice;
     deferredPrompt = null;
-    $('install-box').classList.remove('show');
+    $('install-box').hidden = true;
   });
-  window.addEventListener('appinstalled', () => $('install-box').classList.remove('show'));
+  window.addEventListener('appinstalled', () => { $('install-box').hidden = true; });
 
   // iOS Safari n'a pas de bouton d'installation automatique : on explique le geste.
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   if (isIos && !isStandalone) {
-    $('install-text').textContent = 'Pour installer l’application : touchez Partager, puis « Sur l’écran d’accueil ».';
-    $('install-box').classList.add('show');
+    $('install-text').textContent = 'Pour l’installer : touchez Partager, puis « Sur l’écran d’accueil ».';
+    $('install-box').hidden = false;
   }
 </script>
 </body>

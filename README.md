@@ -1,56 +1,61 @@
-<<<<<<< HEAD
-# Mettre l'appli à disposition de tous (site + application installable)
+# Vérif Médicament
 
-## 1. Base de données en ligne (MongoDB Atlas, offre gratuite)
-1. Crée un cluster gratuit sur https://www.mongodb.com/atlas, puis un utilisateur de base de données.
-2. Dans « Network Access », autorise l'IP de ton hébergeur (ou 0.0.0.0/0 si tu ne la connais pas — mot de passe fort obligatoire).
-3. Copie la chaîne de connexion dans ton `.env` : `MONGO_URI=mongodb+srv://...`
+Application web installable qui indique si un médicament est **toujours commercialisé en France**, à partir de la **Base de données publique des médicaments (BDPM)** : recherche par nom ou scan du code-barres de la boîte, statut d'autorisation, composition, présentations, et extraits du RCP et de la notice.
 
-## 2. Charger les données une première fois (depuis ton PC)
+> Les informations sont données à titre indicatif et ne remplacent pas l'avis d'un médecin ou d'un pharmacien. La source et la date de mise à jour des données sont affichées sur chaque page, conformément aux conditions de réutilisation de la BDPM.
+
+## Fonctionnement
+
+| Élément | Rôle |
+|---|---|
+| `index.js` | Serveur Express : API, page web, sécurité (Helmet, limitation de débit) |
+| `routes/medicamentRoutes.js` | API `/api/v1/medicaments` (recherche, fiche, scan, documents) |
+| `routes/syncRoutes.js` | API `/api/v1/sync/status` (date de la dernière mise à jour) |
+| `utils/statutMedicament.js` | Calcul du statut : commercialisé, retiré du marché, AMM non active |
+| `utils/encodage.js` | Lecture des fichiers BDPM, qui mélangent UTF-8 et Windows-1252 |
+| `utils/documentsBdpm.js` | Extraction des rubriques du RCP et de la notice sur le site officiel |
+| `scripts/` | Téléchargement et import des fichiers officiels dans MongoDB |
+| `public/` | Page web et fichiers de l'application installable |
+| `test/` | Tests automatiques (`npm test`) |
+
+### API
+
+| Route | Réponse |
+|---|---|
+| `GET /api/v1/medicaments/search?q=<nom>` | Jusqu'à 25 médicaments, avec leur statut |
+| `GET /api/v1/medicaments/<code CIS>` | Fiche complète : composition, présentations, avis HAS |
+| `GET /api/v1/medicaments/scan/<CIP13 ou CIP7>` | Médicament correspondant à un code-barres |
+| `GET /api/v1/medicaments/<code CIS>/documents` | Lien officiel et extraits du RCP et de la notice |
+| `GET /api/v1/sync/status` | Date et bilan de la dernière synchronisation |
+| `GET /health` | État du service |
+
+## Installation locale
+
 ```bash
 npm install
-npm run bdpm:sync     # télécharge les fichiers officiels puis les importe dans Atlas
+cp .env.example .env      # puis renseigner MONGO_URI
+npm run bdpm:sync         # télécharge les fichiers officiels puis les importe
+npm start                 # http://localhost:3000
+npm test                  # tests automatiques
 ```
 
-## 3. Héberger l'appli (Render, Railway, Fly.io…)
-- Déploie ce dossier depuis un dépôt Git (le `Dockerfile` est fourni) ou en « Node » : commande de démarrage `node index.js`.
-- Variable d'environnement à définir chez l'hébergeur : `MONGO_URI`.
-- Chemin de contrôle de santé : `/health`.
-- L'hébergeur fournit le HTTPS : **il est obligatoire** pour que la caméra (scan) et l'installation de l'application fonctionnent.
+## Sécurité des identifiants
 
-## 4. Mises à jour automatiques des données
-Les données changent environ chaque mois. Le plus simple : une tâche planifiée GitHub Actions
-(`.github/workflows/sync.yml`, avec le secret `MONGO_URI` dans les paramètres du dépôt) :
-```yaml
-name: Sync BDPM
-on:
-  schedule: [{ cron: "0 3 * * 1" }]
-  workflow_dispatch:
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22 }
-      - run: npm install
-      - run: npm run bdpm:sync
-        env: { MONGO_URI: "${{ secrets.MONGO_URI }}" }
-```
-(Alternative : `npm run bdpm:scheduler` comme service de fond.) Note : sur un hébergeur à disque éphémère, la mention
-« Données à jour au… » en bas de page n'apparaît que si la synchro a tourné sur le même serveur.
+- Le fichier `.env` contient le mot de passe de la base : il est exclu de Git par `.gitignore` et **ne doit jamais être publié**.
+- Chez l'hébergeur (Render) et dans GitHub Actions, le mot de passe est saisi comme **variable d'environnement** ou **secret** (`MONGO_URI`), jamais dans le code.
+- Dans MongoDB Atlas, utilisez un utilisateur dédié à l'application, avec un mot de passe long et aléatoire.
 
-## 5. L'appli sur téléphone
-- **Android (Chrome)** : bouton « Installer » affiché dans la page, ou menu ⋮ → « Installer l'application ».
-- **iPhone (Safari)** : Partager → « Sur l'écran d'accueil ».
-- Pour publier sur Google Play / l'App Store il faudra envelopper le site (TWA ou Capacitor) : possible plus tard, le site installable suffit pour commencer.
+## Mise en ligne
 
-## 6. ⚠️ À surveiller : la BDPM est remplacée en janvier 2027
-D'après l'ANSM (comité d'interface, oct. 2026), la BDPM devient « Info Médicament » en janvier 2027 : redirections automatiques
-des anciens liens, et données structurées publiées sur data.gouv.fr. Il faudra alors adapter :
-- `scripts/downloadBDPM.js` (`BASE_URL` des fichiers) ;
-- `utils/documentsBdpm.js` (`getDocumentUrls`, et peut-être l'extraction du texte RCP/notice).
-Tant que ces deux points échouent, l'appli continue de fonctionner avec les dernières données importées et affiche les liens officiels.
-=======
-# MED
->>>>>>> 2c44ed2929b6057332b3017d3f1484f0e5898f8d
+1. **Base de données** : cluster gratuit MongoDB Atlas ; autoriser l'adresse IP de l'hébergeur dans *Network Access*.
+2. **Hébergement** (Render, Railway, Fly.io…) : déploiement depuis ce dépôt avec le `dockerfile` fourni, ou en Node avec la commande `node index.js` ; variable `MONGO_URI` ; contrôle de santé sur `/health`. Le HTTPS est indispensable pour la caméra et l'installation de l'application.
+3. **Mise à jour des données** : le workflow `.github/workflows/manual.yml` exécute `npm run bdpm:sync` chaque lundi à 3 h et peut être lancé à la main (onglet *Actions* → *Sync BDPM* → *Run workflow*). Il utilise le secret de dépôt `MONGO_URI`.
+
+## Installer l'application sur téléphone
+
+- **Android (Chrome)** : bouton « Installer » dans la page, ou menu ⋮ → *Installer l'application*.
+- **iPhone (Safari)** : *Partager* → *Sur l'écran d'accueil*.
+
+## À surveiller : la BDPM devient « Info Médicament » en janvier 2027
+
+L'ANSM annonce le remplacement de la BDPM par Info Médicament, avec redirection des anciens liens et publication des données sur data.gouv.fr. Il faudra alors adapter `BASE_URL` dans `scripts/downloadBDPM.js` et `getDocumentUrls` dans `utils/documentsBdpm.js`. En attendant, l'application continue de fonctionner avec les dernières données importées.
