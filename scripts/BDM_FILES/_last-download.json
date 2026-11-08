@@ -1,0 +1,12 @@
+{
+  "downloaded_at": "2026-11-08T18:29:42.059Z",
+  "ok": [
+    "CIS_bdpm.txt",
+    "CIS_CIP_bdpm.txt",
+    "CIS_COMPO_bdpm.txt",
+    "CIS_HAS_SMR_bdpm.txt",
+    "CIS_HAS_ASMR_bdpm.txt",
+    "CIS_CIP_Dispo_Spec.txt"
+  ],
+  "failed": []
+}

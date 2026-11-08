@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Vérif Médicament — Statut, RCP et notice</title>
+<meta name="description" content="Vérifiez si un médicament est toujours commercialisé et consultez son RCP et sa notice. Données officielles BDPM.">
+<meta name="theme-color" content="#0F6E5D">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vérif Médicament">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EFF3F2; --panel: #FFFFFF; --ink: #16302B; --ink-soft: #4B615C; --border: #D8E0DD;
+    --brand: #0F6E5D; --brand-dark: #0B4F43;
+    --ok: #2F7D4F; --ok-bg: #E4F1E8; --warn: #B5541D; --warn-bg: #FBEBE0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh;
+    display: flex; justify-content: center;
+    padding: max(32px, env(safe-area-inset-top)) 16px max(64px, env(safe-area-inset-bottom));
+  }
+  main { width: 100%; max-width: 560px; }
+  header { margin-bottom: 20px; }
+  header h1 { font-family: 'Fraunces', serif; font-size: 1.75rem; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--ink-soft); font-size: 0.95rem; max-width: 48ch; line-height: 1.5; }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+
+  button { font-family: inherit; font-size: 0.9rem; font-weight: 500; border-radius: 8px; border: none; padding: 11px 16px; cursor: pointer; transition: background-color .15s ease; }
+  .btn-primary { background: var(--brand); color: #fff; flex: 1; }
+  .btn-primary:hover { background: var(--brand-dark); }
+  .btn-secondary { background: transparent; color: var(--ink-soft); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #F3F6F5; }
+  button:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+  /* Onglets */
+  .tabs { display: flex; gap: 4px; padding: 4px; background: #E3EAE8; border-radius: 10px; margin-bottom: 16px; }
+  .tab { flex: 1; background: transparent; color: var(--ink-soft); padding: 9px 12px; }
+  .tab[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  [role="tabpanel"][hidden] { display: none; }
+
+  /* Recherche par nom */
+  .search-box input[type="text"], .manual-entry input {
+    width: 100%; font-family: inherit; font-size: 1rem; padding: 13px 14px;
+    border-radius: 10px; border: 1px solid var(--border); background: #FBFCFC; color: var(--ink);
+  }
+  #results-list { margin-top: 10px; border-top: 1px solid var(--border); display: none; }
+  #results-list.show { display: block; }
+  .result-row { width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid var(--border); border-radius: 0; padding: 12px 4px; }
+  .result-row:hover { background: #F3F6F5; }
+  .result-row:last-child { border-bottom: none; }
+  .result-name { font-weight: 600; font-size: .95rem; }
+  .result-meta { font-size: .82rem; color: var(--ink-soft); margin-top: 2px; }
+  .result-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; }
+  .result-dot.ok { background: var(--ok); } .result-dot.warn { background: var(--warn); }
+  #search-status { font-size: .85rem; color: var(--ink-soft); margin-top: 8px; min-height: 1em; }
+
+  /* Scan */
+  #scanner-region { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #0B211C; border-radius: 10px; overflow: hidden; }
+  #scanner-region video { width: 100% !important; height: 100% !important; object-fit: cover; }
+  .scanner-idle { display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(255,255,255,.7); font-size: .9rem; text-align: center; padding: 0 24px; }
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  .manual-entry { display: flex; gap: 8px; margin-top: 10px; }
+  .manual-entry input { flex: 1; font-size: .95rem; padding: 10px 12px; }
+  .fine-print { font-size: .8rem; color: var(--ink-soft); margin: 10px 0 0; line-height: 1.5; }
+
+  /* Verdict */
+  #result { display: none; } #result.show { display: block; }
+  .verdict { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 4px; }
+  .verdict-word { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.1; }
+  .verdict.ok .verdict-word { color: var(--ok); } .verdict.warn .verdict-word { color: var(--warn); }
+  .verdict-badge { font-size: .75rem; padding: 3px 8px; border-radius: 999px; font-weight: 500; }
+  .verdict.ok .verdict-badge { background: var(--ok-bg); color: var(--ok); }
+  .verdict.warn .verdict-badge { background: var(--warn-bg); color: var(--warn); }
+  .med-name { font-size: 1.05rem; font-weight: 600; margin: 14px 0 2px; }
+  .med-form { color: var(--ink-soft); font-size: .9rem; margin-bottom: 16px; }
+  .reason { font-size: .9rem; color: var(--ink-soft); line-height: 1.5; margin-bottom: 16px; padding: 12px 14px; background: #F3F6F5; border-radius: 8px; }
+  dl.details { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0; font-size: .88rem; }
+  dl.details dt { color: var(--ink-soft); } dl.details dd { margin: 0; text-align: right; }
+
+  /* Documents */
+  .doc-section { display: none; } .doc-section.show { display: block; }
+  .doc-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .doc-title { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 600; }
+  .doc-link { font-size: .82rem; color: var(--brand); text-decoration: none; white-space: nowrap; }
+  .doc-link:hover { text-decoration: underline; }
+  details.doc-sec { border-top: 1px solid var(--border); padding: 10px 0; }
+  details.doc-sec summary { cursor: pointer; font-weight: 600; font-size: .92rem; }
+  .doc-text { font-size: .88rem; line-height: 1.6; white-space: pre-line; margin-top: 8px; color: var(--ink); }
+  .doc-note { font-size: .85rem; color: var(--ink-soft); font-style: italic; line-height: 1.5; }
+  .doc-updated { font-size: .78rem; color: var(--ink-soft); margin-top: 8px; }
+
+  #error-msg { display: none; color: var(--warn); background: var(--warn-bg); padding: 12px 14px; border-radius: 8px; font-size: .9rem; margin-top: 12px; }
+  #error-msg.show { display: block; }
+  #sync-status { text-align: center; font-size: .8rem; color: var(--ink-soft); margin: 0 0 16px; }
+  #install-box { display: none; margin-bottom: 16px; align-items: center; gap: 12px; justify-content: space-between; }
+  #install-box.show { display: flex; }
+  #install-box span { font-size: .88rem; color: var(--ink-soft); line-height: 1.4; }
+  footer { font-size: .78rem; color: var(--ink-soft); line-height: 1.6; text-align: center; margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Toujours commercialisé ?</h1>
+    <p>Cherchez un médicament par son nom ou scannez sa boîte pour connaître son statut, son résumé des caractéristiques (RCP) et sa notice.</p>
+  </header>
+
+  <div class="card" id="install-box">
+    <span id="install-text">Installez l’application sur votre écran d’accueil.</span>
+    <button class="btn-primary" id="btn-install" style="flex:none; display:none;">Installer</button>
+  </div>
+
+  <section class="card">
+    <div class="tabs" role="tablist" aria-label="Mode de recherche">
+      <button class="tab" role="tab" id="tab-name" aria-selected="true" aria-controls="panel-name">Par nom</button>
+      <button class="tab" role="tab" id="tab-scan" aria-selected="false" aria-controls="panel-scan">Scanner</button>
+    </div>
+
+    <div role="tabpanel" id="panel-name" aria-labelledby="tab-name">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Nom du médicament (ex. Doliprane, Amoxicilline…)" autocomplete="off" aria-label="Nom du médicament">
+        <div id="results-list"></div>
+        <div id="search-status" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div role="tabpanel" id="panel-scan" aria-labelledby="tab-scan" hidden>
+      <div id="scanner-region">
+        <div class="scanner-idle" id="scanner-idle">Appuyez sur « Scanner » pour activer la caméra</div>
+      </div>
+      <div class="actions">
+        <button class="btn-primary" id="btn-scan">Scanner</button>
+        <button class="btn-secondary" id="btn-stop" style="display:none;">Arrêter</button>
+      </div>
+      <div class="manual-entry">
+        <input type="text" id="manual-code" placeholder="Ou saisissez le code CIP13 (13 chiffres)" inputmode="numeric" maxlength="13" aria-label="Code CIP13">
+        <button class="btn-secondary" id="btn-manual">Vérifier</button>
+      </div>
+      <p class="fine-print">Le scan lit le code-barres ou le code DataMatrix de la boîte. Sinon, saisissez le code CIP13 imprimé dessous.</p>
+    </div>
+
+    <div id="error-msg" role="alert"></div>
+  </section>
+
+  <p id="sync-status"></p>
+
+  <section class="card" id="result">
+    <div class="verdict" id="verdict">
+      <span class="verdict-word" id="verdict-word"></span>
+      <span class="verdict-badge" id="verdict-badge"></span>
+    </div>
+    <div class="med-name" id="med-name"></div>
+    <div class="med-form" id="med-form"></div>
+    <div class="reason" id="reason"></div>
+    <dl class="details" id="details"></dl>
+  </section>
+
+  <section class="card doc-section" id="rcp-section">
+    <div class="doc-header">
+      <span class="doc-title">Résumé des caractéristiques du produit</span>
+      <a class="doc-link" id="rcp-link" href="#" target="_blank" rel="noopener">Site officiel ↗</a>
+    </div>
+    <div id="rcp-content"></div>
+  </section>
+
+  <section class="card doc-section" id="notice-section">
+    <div class="doc-header">
+      <span class="doc-title">Notice patient</span>
+      <a class="doc-link" id="notice-link" href="#" target="_blank" rel="noopener">Site officiel ↗</a>
+    </div>
+    <div id="notice-content"></div>
+  </section>
+
+  <footer>
+    Informations issues de la Base de Données Publique des Médicaments (ANSM, HAS, Assurance Maladie), à titre indicatif.<br>
+    Elles ne remplacent pas l’avis d’un médecin ou d’un pharmacien. En cas de doute, demandez conseil à un professionnel de santé.
+  </footer>
+</main>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  const API_BASE = '/api/v1/medicaments';
+  const $ = (id) => document.getElementById(id);
+
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+
+  function showError(message) { const el = $('error-msg'); el.textContent = message; el.classList.add('show'); }
+  function clearError() { $('error-msg').classList.remove('show'); }
+
+  /* ---------- Onglets ---------- */
+  function selectTab(name) {
+    const isName = name === 'name';
+    $('tab-name').setAttribute('aria-selected', isName);
+    $('tab-scan').setAttribute('aria-selected', !isName);
+    $('panel-name').hidden = !isName;
+    $('panel-scan').hidden = isName;
+    if (isName) stopScanner();
+    clearError();
+  }
+  $('tab-name').addEventListener('click', () => selectTab('name'));
+  $('tab-scan').addEventListener('click', () => selectTab('scan'));
+
+  /* ---------- Recherche par nom ---------- */
+  let debounceTimer = null;
+  let searchController = null;
+
+  $('search-input').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const q = $('search-input').value.trim();
+    if (q.length < 2) {
+      $('results-list').classList.remove('show');
+      $('results-list').innerHTML = '';
+      $('search-status').textContent = '';
+      return;
+    }
+    $('search-status').textContent = 'Recherche…';
+    debounceTimer = setTimeout(() => runSearch(q), 300);
+  });
+
+  async function runSearch(q) {
+    clearError();
+    if (searchController) searchController.abort(); // ignore les réponses devenues obsolètes
+    searchController = new AbortController();
+    try {
+      const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(q)}`, { signal: searchController.signal });
+      const data = await res.json();
+      if (!res.ok) { showError(data.message || 'Erreur lors de la recherche.'); return; }
+      renderResultsList(data);
+    } catch (err) {
+      if (err.name !== 'AbortError') showError('Impossible de contacter le serveur.');
+    }
+  }
+
+  function renderResultsList(medicaments) {
+    const list = $('results-list');
+    if (medicaments.length === 0) {
+      list.innerHTML = ''; list.classList.remove('show');
+      $('search-status').textContent = 'Aucun médicament trouvé pour cette recherche.';
+      return;
+    }
+    $('search-status').textContent = '';
+    list.innerHTML = medicaments.map((m) => `
+      <button class="result-row" data-cis="${escapeHtml(m.code_cis)}">
+        <div class="result-name"><span class="result-dot ${m.statut_obsolescence.obsolete ? 'warn' : 'ok'}"></span>${escapeHtml(m.denomination || '—')}</div>
+        <div class="result-meta">${escapeHtml(m.forme_pharmaceutique || '')} · ${escapeHtml(m.statut_obsolescence.label)}</div>
+      </button>`).join('');
+    list.classList.add('show');
+    list.querySelectorAll('.result-row').forEach((btn) => btn.addEventListener('click', () => selectMedicament(btn.dataset.cis)));
+  }
+
+  async function selectMedicament(cis) {
+    clearError();
+    $('results-list').classList.remove('show');
+    $('search-input').value = '';
+    hideDocuments();
+    try {
+      const res = await fetch(`${API_BASE}/${encodeURIComponent(cis)}`);
+      const data = await res.json();
+      if (!res.ok) { showError(data.message || 'Médicament introuvable.'); return; }
+      renderResult(data);
+      loadDocuments(data.code_cis);
+    } catch (err) {
+      showError('Impossible de contacter le serveur.');
+    }
+  }
+
+  /* ---------- Scan ---------- */
+  let html5QrCode = null;
+  let scanning = false;
+
+  /** Extrait un code CIP13/CIP7 d'un texte scanné (EAN-13, GTIN-14, ou DataMatrix GS1 « 01… »). */
+  function extractCode(raw) {
+    const t = String(raw).replace(/^\][A-Za-z]\d/, '').replace(/[\x00-\x1f]/g, '').trim();
+    if (/^\d{13}$/.test(t) || /^\d{7}$/.test(t)) return t;
+    const gs1 = t.match(/^01(\d{14})/);                 // DataMatrix des boîtes : 01 + GTIN-14 + lot, péremption…
+    if (gs1 && gs1[1].startsWith('0')) return gs1[1].slice(1);
+    if (/^0\d{13}$/.test(t)) return t.slice(1);          // GTIN-14 seul
+    return null;
+  }
+
+  async function startScanner() {
+    clearError();
+    $('result').classList.remove('show');
+    hideDocuments();
+    if (typeof Html5Qrcode === 'undefined') { showError('Le module de scan n’a pas pu se charger. Saisissez le code manuellement.'); return; }
+
+    html5QrCode = new Html5Qrcode('scanner-region');
+    try {
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 260, height: 180 },
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.DATA_MATRIX,
+          ],
+        },
+        (decodedText) => {
+          const code = extractCode(decodedText);
+          stopScanner();
+          if (code) lookupCode(code);
+          else showError('Code lu mais non reconnu comme un code médicament. Saisissez le CIP13 manuellement.');
+        },
+        () => {}
+      );
+      scanning = true;
+      $('scanner-idle').style.display = 'none';
+      $('btn-scan').style.display = 'none';
+      $('btn-stop').style.display = 'block';
+    } catch (err) {
+      showError('Impossible d’accéder à la caméra (autorisation refusée, ou page non sécurisée). Saisissez le code manuellement.');
+    }
+  }
+
+  async function stopScanner() {
+    if (html5QrCode && scanning) {
+      scanning = false;
+      try { await html5QrCode.stop(); html5QrCode.clear(); } catch (e) { /* déjà arrêté */ }
+    }
+    $('scanner-idle').style.display = 'flex';
+    $('btn-scan').style.display = 'block';
+    $('btn-stop').style.display = 'none';
+  }
+
+  async function lookupCode(code) {
+    clearError();
+    hideDocuments();
+    try {
+      const res = await fetch(`${API_BASE}/scan/${encodeURIComponent(code)}`);
+      const data = await res.json();
+      if (!res.ok) { showError(data.message || 'Code non reconnu dans la base BDPM.'); return; }
+      renderResult(data);
+      loadDocuments(data.code_cis);
+    } catch (err) {
+      showError('Impossible de contacter le serveur. Réessayez dans un instant.');
+    }
+  }
+
+  $('btn-scan').addEventListener('click', startScanner);
+  $('btn-stop').addEventListener('click', stopScanner);
+  $('btn-manual').addEventListener('click', () => {
+    const code = extractCode($('manual-code').value);
+    if (code) lookupCode(code); else showError('Saisissez un code CIP13 (13 chiffres) ou CIP7 (7 chiffres) valide.');
+  });
+  $('manual-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn-manual').click(); });
+
+  /* ---------- Résultat ---------- */
+  function renderResult(m) {
+    const statut = m.statut_obsolescence;
+    $('verdict').className = 'verdict ' + (statut.obsolete ? 'warn' : 'ok');
+    $('verdict-word').textContent = statut.obsolete ? 'Obsolète' : 'Toujours valide';
+    $('verdict-badge').textContent = statut.label;
+    $('med-name').textContent = m.denomination || '—';
+    $('med-form').textContent = [m.forme_pharmaceutique, (m.voies_administration || []).join(', ')].filter(Boolean).join(' · ');
+    $('reason').textContent = statut.reason;
+
+    const scanned = m.presentation_scannee;
+    const rows = [
+      ['Code CIS', m.code_cis],
+      scanned ? ['Code-barres scanné', scanned.code_cip13 || scanned.code_cip7] : null,
+      ['Statut AMM', m.statut_amm],
+      ['État de commercialisation', m.etat_commercialisation],
+      ['Titulaire(s)', (m.titulaires || []).join(', ')],
+    ].filter((row) => row && row[1]);
+    $('details').innerHTML = rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('');
+
+    $('result').classList.add('show');
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  /* ---------- RCP & notice ---------- */
+  function hideDocuments() {
+    $('rcp-section').classList.remove('show');
+    $('notice-section').classList.remove('show');
+  }
+
+  let documentsRequestId = 0;
+  async function loadDocuments(cis) {
+    const requestId = ++documentsRequestId;
+    $('rcp-section').classList.add('show');
+    $('notice-section').classList.add('show');
+    $('rcp-content').innerHTML = '<p class="doc-note">Chargement du RCP…</p>';
+    $('notice-content').innerHTML = '<p class="doc-note">Chargement de la notice…</p>';
+
+    try {
+      const res = await fetch(`${API_BASE}/${encodeURIComponent(cis)}/documents`);
+      const data = await res.json();
+      if (requestId !== documentsRequestId) return; // une autre recherche a pris le relais
+      if (!res.ok) throw new Error(data.message);
+      renderDocument(data.rcp, 'rcp');
+      renderDocument(data.notice, 'notice');
+    } catch (err) {
+      if (requestId !== documentsRequestId) return;
+      const msg = '<p class="doc-note">Documents momentanément indisponibles. Réessayez dans un instant.</p>';
+      $('rcp-content').innerHTML = msg; $('notice-content').innerHTML = msg;
+    }
+  }
+
+  function renderDocument(doc, prefix) {
+    $(`${prefix}-link`).href = doc.url;
+    const el = $(`${prefix}-content`);
+
+    if (!doc.sections || doc.sections.length === 0) {
+      el.innerHTML = '<p class="doc-note">Résumé non disponible automatiquement pour ce médicament. Consultez le document complet sur le site officiel (lien ci-dessus).</p>';
+      return;
+    }
+    const sections = doc.sections.map((s, i) => `
+      <details class="doc-sec"${i === 0 ? ' open' : ''}>
+        <summary>${escapeHtml(s.titre)}</summary>
+        <div class="doc-text">${escapeHtml(s.texte)}</div>
+      </details>`).join('');
+    const updated = doc.derniere_maj ? `<div class="doc-updated">Mis à jour le ${escapeHtml(doc.derniere_maj)}</div>` : '';
+    el.innerHTML = sections + `<p class="doc-note" style="margin-top:8px">Extraits : le document complet fait foi.</p>` + updated;
+  }
+
+  /* ---------- Fraîcheur des données ---------- */
+  (async function showSyncStatus() {
+    try {
+      const data = await (await fetch('/api/v1/sync/status')).json();
+      if (data.last_import && data.last_import.imported_at) {
+        const date = new Date(data.last_import.imported_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+        $('sync-status').textContent = `Données BDPM à jour au ${date}`;
+      }
+    } catch (e) { /* silencieux */ }
+  })();
+
+  /* ---------- Application installable ---------- */
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    $('btn-install').style.display = 'block';
+    $('install-box').classList.add('show');
+  });
+  $('btn-install').addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    $('install-box').classList.remove('show');
+  });
+  window.addEventListener('appinstalled', () => $('install-box').classList.remove('show'));
+
+  // iOS Safari n'a pas de bouton d'installation automatique : on explique le geste.
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (isIos && !isStandalone) {
+    $('install-text').textContent = 'Pour installer l’application : touchez Partager, puis « Sur l’écran d’accueil ».';
+    $('install-box').classList.add('show');
+  }
+</script>
+</body>
+</html>

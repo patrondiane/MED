@@ -1,0 +1,10 @@
+{
+  "imported_at": "2026-11-08T18:32:07.789Z",
+  "counts": {
+    "medicaments": 15845,
+    "presentations": 20914,
+    "avis_smr": 15595,
+    "avis_asmr": 10146
+  },
+  "success": true
+}

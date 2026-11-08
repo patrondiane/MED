@@ -1,0 +1,25 @@
+{
+  "name": "bdpm-app",
+  "version": "1.0.0",
+  "description": "API + scanner pour vérifier si un médicament français est toujours commercialisé, à partir de la BDPM.",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "bdpm:download": "node scripts/downloadBDPM.js",
+    "bdpm:import": "node scripts/importData.js",
+    "bdpm:sync": "node scripts/sync.js",
+    "bdpm:scheduler": "node scripts/scheduler.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongodb": "^7.8.0",
+    "mongoose": "^8.5.1",
+    "node-cron": "^3.0.3"
+  }
+}
