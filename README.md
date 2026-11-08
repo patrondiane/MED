@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Mettre l'appli à disposition de tous (site + application installable)
 
 ## 1. Base de données en ligne (MongoDB Atlas, offre gratuite)
@@ -50,3 +51,6 @@ des anciens liens, et données structurées publiées sur data.gouv.fr. Il faudr
 - `scripts/downloadBDPM.js` (`BASE_URL` des fichiers) ;
 - `utils/documentsBdpm.js` (`getDocumentUrls`, et peut-être l'extraction du texte RCP/notice).
 Tant que ces deux points échouent, l'appli continue de fonctionner avec les dernières données importées et affiche les liens officiels.
+=======
+# MED
+>>>>>>> 2c44ed2929b6057332b3017d3f1484f0e5898f8d
