@@ -6,6 +6,7 @@
 
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { diagnostiquerMongoUri } = require('../utils/configMongo');
 
 const run = (scriptPath) => {
     execFileSync(process.execPath, [scriptPath], {
@@ -17,6 +18,16 @@ const run = (scriptPath) => {
 const main = () => {
     const startedAt = Date.now();
     console.log('=== Synchronisation BDPM ===\n');
+
+    // Vérification avant de télécharger quoi que ce soit : inutile de récupérer
+    // 19 Mo de fichiers si l'import ne pourra pas se connecter à la base.
+    require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+    const probleme = diagnostiquerMongoUri(process.env.MONGO_URI);
+    if (probleme) {
+        console.error(`❌ Configuration incomplète : ${probleme}`);
+        process.exitCode = 1;
+        return;
+    }
 
     try {
         run(path.join(__dirname, 'downloadBDPM.js'));

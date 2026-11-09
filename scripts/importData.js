@@ -8,9 +8,12 @@ require('dotenv').config();
 
 const { Medicament, Presentation, AvisSMR, AvisASMR } = require('../models/Medicament');
 const { decoderFichierBdpm } = require('../utils/encodage');
+const { diagnostiquerMongoUri } = require('../utils/configMongo');
 
 const connectDB = async () => {
-    await mongoose.connect(process.env.MONGO_URI);
+    const probleme = diagnostiquerMongoUri(process.env.MONGO_URI);
+    if (probleme) throw new Error(probleme);
+    await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 20000 });
     console.log('✅ Connecté à MongoDB pour l\'importation.');
 };
 
@@ -314,7 +317,14 @@ const runImport = async () => {
         await writeImportSummary({ success: true });
         console.log('\n🌟 Importation des données terminée !');
     } catch (error) {
-        console.error('Une erreur fatale est survenue durant l\'importation :', error);
+        console.error('Une erreur fatale est survenue durant l\'importation :', error.message);
+        if (/ServerSelection|ECONNREFUSED|timed out|whitelist|IP/i.test(`${error.name} ${error.message}`)) {
+            console.error('➡️  MongoDB Atlas a refusé ou ignoré la connexion. Vérifiez dans Atlas → Network Access que '
+                + 'l’adresse 0.0.0.0/0 est autorisée (les serveurs GitHub Actions et Render changent d’adresse IP).');
+        } else if (/auth|password/i.test(error.message)) {
+            console.error('➡️  Identifiants refusés : le mot de passe de MONGO_URI ne correspond pas à celui de '
+                + 'l’utilisateur dans Atlas → Database Access (pensez à mettre à jour le secret après un changement).');
+        }
         await writeImportSummary({ success: false, error: error.message }).catch(() => {});
         process.exitCode = 1;
     } finally {
